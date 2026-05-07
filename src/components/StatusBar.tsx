@@ -33,9 +33,10 @@ interface StatusBarProps {
   onReset: () => void;
   theme: string;
   onThemeChange: (theme: string) => void;
+  onOpenMemory?: () => void;
 }
 
-export function StatusBar({ onDemo, onReset, theme, onThemeChange }: StatusBarProps) {
+export function StatusBar({ onDemo, onReset, theme, onThemeChange, onOpenMemory }: StatusBarProps) {
   const fsm = useJarvisStore((s) => s.fsm);
   const room = Rooms[fsm.room];
   const active = fsm.state !== "idle" && fsm.state !== "success" && fsm.state !== "error";
@@ -68,6 +69,11 @@ export function StatusBar({ onDemo, onReset, theme, onThemeChange }: StatusBarPr
           <option value="monochrome">Theme: Premium Monochrome</option>
           <option value="matrix">Theme: Matrix Rain</option>
         </select>
+        {onOpenMemory ? (
+          <button type="button" className="btn btn-ghost" onClick={onOpenMemory} title="Open Memory Hub">
+            Memory
+          </button>
+        ) : null}
         <button type="button" className="btn btn-ghost" onClick={onReset}>
           Reset
         </button>

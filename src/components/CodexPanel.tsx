@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
 type CodexSpeed = "standard" | "fast";
-type CodexModel = "gpt-5.5" | "gpt-5.4" | "gpt-5.4-mini" | "gpt-5.3-codex" | "gpt-5.2";
+type CodexModel =
+  | "gpt-5.5"
+  | "gpt-5.4"
+  | "gpt-5.4-mini"
+  | "gpt-5.3-codex"
+  | "gpt-5.3-codex-spark"
+  | "gpt-5.2";
 type AgentProvider = "codex" | "windsurf";
 type AgentRunResult = { ok: boolean; error?: string; message?: string };
 type AgentStatus = { running: boolean; exitCode?: number; provider?: AgentProvider; message?: string; model?: CodexModel };
@@ -16,6 +22,7 @@ interface JarvisApi {
     model: CodexModel;
     reasoningEffort: ReasoningEffort;
     speed: CodexSpeed;
+    memoryContext?: boolean;
   }) => Promise<AgentRunResult>;
   runCodex?: (request: {
     workspace: string;
@@ -23,7 +30,9 @@ interface JarvisApi {
     model: CodexModel;
     reasoningEffort: ReasoningEffort;
     speed?: CodexSpeed;
+    memoryContext?: boolean;
   }) => Promise<AgentRunResult>;
+  stopCodex?: () => Promise<{ ok: boolean; error?: string }>;
   onAgentStatus?: (cb: (status: AgentStatus) => void) => () => void;
   onCodexStatus?: (cb: (status: AgentStatus) => void) => () => void;
 }
@@ -57,6 +66,7 @@ const MODEL_OPTIONS: Array<{
   { value: "gpt-5.4", label: "GPT-5.4", description: "Strong" },
   { value: "gpt-5.4-mini", label: "GPT-5.4 Mini", description: "Compact" },
   { value: "gpt-5.3-codex", label: "GPT-5.3 Codex", description: "Code tuned" },
+  { value: "gpt-5.3-codex-spark", label: "GPT-5.3 Codex Spark", description: "Real-time" },
   { value: "gpt-5.2", label: "GPT-5.2", description: "Legacy" },
 ];
 
@@ -84,7 +94,14 @@ function isCodexSpeed(value: string | null): value is CodexSpeed {
 }
 
 function isCodexModel(value: string | null): value is CodexModel {
-  return value === "gpt-5.5" || value === "gpt-5.4" || value === "gpt-5.4-mini" || value === "gpt-5.3-codex" || value === "gpt-5.2";
+  return (
+    value === "gpt-5.5" ||
+    value === "gpt-5.4" ||
+    value === "gpt-5.4-mini" ||
+    value === "gpt-5.3-codex" ||
+    value === "gpt-5.3-codex-spark" ||
+    value === "gpt-5.2"
+  );
 }
 
 function jarvisApi(): JarvisApi | undefined {
@@ -98,7 +115,10 @@ export function CodexPanel() {
     return isAgentProvider(saved) ? saved : "codex";
   });
   const [workspace, setWorkspace] = useState(() => localStorage.getItem("jarvis.workspace") ?? "");
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [prompt, setPrompt] = useState(() => localStorage.getItem("jarvis.lastPrompt") || DEFAULT_PROMPT);
+  const [memoryContext, setMemoryContext] = useState(
+    () => localStorage.getItem("jarvis.memoryContext") !== "off",
+  );
   const [model, setModel] = useState<CodexModel>(() => {
     const saved = localStorage.getItem("jarvis.codexModel");
     return isCodexModel(saved) ? saved : "gpt-5.5";
@@ -133,6 +153,14 @@ export function CodexPanel() {
   useEffect(() => {
     localStorage.setItem("jarvis.codexSpeed", speed);
   }, [speed]);
+
+  useEffect(() => {
+    localStorage.setItem("jarvis.lastPrompt", prompt);
+  }, [prompt]);
+
+  useEffect(() => {
+    localStorage.setItem("jarvis.memoryContext", memoryContext ? "on" : "off");
+  }, [memoryContext]);
 
   useEffect(() => {
     const subscribe = api?.onAgentStatus ?? api?.onCodexStatus;
@@ -193,6 +221,7 @@ export function CodexPanel() {
           model,
           reasoningEffort,
           speed,
+          memoryContext,
         })
       : await api.runCodex?.({
           workspace: workspace.trim(),
@@ -200,6 +229,7 @@ export function CodexPanel() {
           model,
           reasoningEffort,
           speed,
+          memoryContext,
         });
 
     if (!result?.ok) {
@@ -209,7 +239,19 @@ export function CodexPanel() {
       setRunning(false);
       setMessage(result.message ?? "Windsurf opened; task copied to clipboard");
     }
-  }, [api, model, prompt, provider, reasoningEffort, speed, workspace]);
+  }, [api, model, memoryContext, prompt, provider, reasoningEffort, speed, workspace]);
+
+  const stopAgent = useCallback(async () => {
+    if (!api?.stopCodex) {
+      setMessage("Stop is only available in the Electron app");
+      return;
+    }
+    setMessage("Stopping Codex...");
+    const result = await api.stopCodex();
+    if (!result?.ok) {
+      setMessage(result?.error ?? "Could not stop Codex");
+    }
+  }, [api]);
 
   return (
     <section className="codex-panel">
@@ -298,9 +340,26 @@ export function CodexPanel() {
             </div>
           </>
         )}
-        <button type="button" className="btn btn-primary codex-run" onClick={runAgent} disabled={running}>
-          {running ? `${provider === "windsurf" ? "Windsurf" : "Codex"} running...` : `Run ${provider === "windsurf" ? "Windsurf" : "Codex"}`}
-        </button>
+        {provider === "codex" && (
+          <label className="memory-toggle">
+            <input
+              type="checkbox"
+              checked={memoryContext}
+              onChange={(e) => setMemoryContext(e.target.checked)}
+            />
+            <span>Inject relevant memories</span>
+          </label>
+        )}
+        <div className="codex-run-row">
+          <button type="button" className="btn btn-primary codex-run" onClick={runAgent} disabled={running}>
+            {running ? `${provider === "windsurf" ? "Windsurf" : "Codex"} running...` : `Run ${provider === "windsurf" ? "Windsurf" : "Codex"}`}
+          </button>
+          {provider === "codex" && running && api?.stopCodex && (
+            <button type="button" className="btn btn-ghost btn-stop" onClick={stopAgent} title="Stop Codex (SIGINT)">
+              Stop
+            </button>
+          )}
+        </div>
         <span className="codex-message">{message}</span>
       </div>
     </section>

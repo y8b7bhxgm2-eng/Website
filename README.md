@@ -30,6 +30,15 @@ celebrating in **Shipping** — or sounding the alarm in **Debugging** when some
   `src/App.tsx`", "Running `npm test`").
 - **Built-in Codex launcher** — choose a workspace, type a task, pick Low / Medium / High /
   Extra High reasoning, and watch Codex activity sync into Jarvis without extra terminals.
+  Includes an inline **Stop Codex** control and an opt-in toggle that injects relevant
+  Memory Hub notes as additional context before each run.
+- **Live terminal panel** — an `xterm.js` view that streams the real Codex stdout, stderr,
+  and parsed activity events with ANSI colors. The Terminal room CRT shows a 4-line
+  live-tail of the same stream while Codex is running.
+- **Memory Hub** — a local Markdown knowledge graph at `~/.jarvis/memory/` with a
+  force-directed graph view, full-text search, backlinks, suggested connections, and
+  automatic capture of every Codex run. Codex receives the directory via `--add-dir`,
+  so the agent can read and write memories with normal file tools.
 - **State machine** — pure, testable FSM that maps incoming events to agent states with sane
   precedence (an `error` doesn't get clobbered by a stray `read` 200ms later).
 - **Integration layer** — multiple ways to feed activity in:

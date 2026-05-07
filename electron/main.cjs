@@ -27,6 +27,7 @@ const { spawn, spawnSync } = require("node:child_process");
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, dialog, nativeTheme, clipboard } = require("electron");
 const { spawnCodex } = require("../scripts/codex-launcher.cjs");
 const { mapCodexEventToActivityEvents } = require("../scripts/codex-to-jarvis.cjs");
+const memoryStore = require("./memoryStore.cjs");
 
 const isDev = process.env.NODE_ENV === "development";
 const DEV_URL = process.env.JARVIS_DEV_URL || "http://localhost:5173";
@@ -219,6 +220,28 @@ function broadcastAgentStatus(status) {
   }
 }
 
+function broadcastCodexOutput(stream, chunk) {
+  if (!chunk) return;
+  const payload = {
+    stream,
+    text: typeof chunk === "string" ? chunk : chunk.toString("utf8"),
+    timestamp: Date.now(),
+  };
+  for (const win of [mainWindow, floatingWindow]) {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("jarvis:codex-output", payload);
+    }
+  }
+}
+
+function broadcastMemoryEvent(type, payload = {}) {
+  for (const win of [mainWindow, floatingWindow]) {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("jarvis:memory-changed", { type, ...payload });
+    }
+  }
+}
+
 function isInsideGitRepo(cwd) {
   let current = path.resolve(cwd);
   while (true) {
@@ -238,7 +261,9 @@ function coerceCodexSpeed(value) {
 }
 
 function coerceCodexModel(value) {
-  return ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"].includes(value) ? value : "gpt-5.5";
+  return ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.3-codex-spark", "gpt-5.2"].includes(value)
+    ? value
+    : "gpt-5.5";
 }
 
 function coerceProvider(value) {
@@ -464,6 +489,11 @@ function runCodexFromApp(request) {
   const model = coerceCodexModel(request?.model);
   const reasoningEffort = coerceReasoningEffort(request?.reasoningEffort);
   const speed = coerceCodexSpeed(request?.speed);
+  const useMemory = request?.memoryContext !== false;
+
+  const memoryContext = useMemory ? memoryStore.buildContextForPrompt(prompt, 5) : "";
+  const finalPrompt = memoryContext ? `${memoryContext}\n\n---\n\n${prompt}` : prompt;
+  const turnNotes = [];
 
   const codexArgs = [
     "exec",
@@ -474,6 +504,8 @@ function runCodexFromApp(request) {
     "workspace-write",
     "-C",
     workspace,
+    "--add-dir",
+    memoryStore.MEMORY_DIR,
     "-c",
     `model_reasoning_effort='${reasoningEffort}'`,
     "-c",
@@ -488,7 +520,7 @@ function runCodexFromApp(request) {
     codexArgs.push("--skip-git-repo-check");
   }
 
-  codexArgs.push(prompt);
+  codexArgs.push(finalPrompt);
 
   let child;
   let codexResolution = null;
@@ -508,6 +540,10 @@ function runCodexFromApp(request) {
   codexChild = child;
   let sawMappedError = false;
   let stderrTail = "";
+  const startedAt = Date.now();
+  const startBanner = `\x1b[2m$ codex exec --model ${model} --sandbox workspace-write\x1b[0m\r\n`;
+  broadcastCodexOutput("system", startBanner);
+
   broadcast({
     id: `codex-ui-start-${Date.now().toString(36)}`,
     timestamp: Date.now(),
@@ -519,7 +555,7 @@ function runCodexFromApp(request) {
         ? `codex exec --json --model ${model} --sandbox workspace-write -c service_tier='fast'`
         : `codex exec --json --model ${model} --sandbox workspace-write`,
     source: "codex",
-    detail: { provider: "codex", codexBinary: codexResolution?.command, model, reasoningEffort, sandbox: "workspace-write", speed },
+    detail: { provider: "codex", codexBinary: codexResolution?.command, model, reasoningEffort, sandbox: "workspace-write", speed, memoryContextChars: memoryContext.length },
   });
   broadcastAgentStatus({ running: true, provider: "codex", workspace, model, reasoningEffort, speed });
 
@@ -527,9 +563,16 @@ function runCodexFromApp(request) {
   rl.on("line", (line) => {
     if (!line.trim()) return;
     try {
-      const events = mapCodexEventToActivityEvents(JSON.parse(line));
+      const parsed = JSON.parse(line);
+      const events = mapCodexEventToActivityEvents(parsed);
       for (const event of events) {
         if (event.kind === "error") sawMappedError = true;
+        if (event.kind !== "idle") {
+          turnNotes.push({ kind: event.kind, message: event.message, path: event.path, command: event.command });
+        }
+        // Echo a compact human line into the terminal panel.
+        const colorize = ansiForKind(event.kind);
+        broadcastCodexOutput("event", `${colorize.open}[${event.kind}]\x1b[0m ${event.message}\r\n`);
         broadcast(event);
       }
     } catch (err) {
@@ -538,26 +581,102 @@ function runCodexFromApp(request) {
   });
 
   child.stderr.on("data", (chunk) => {
-    stderrTail = `${stderrTail}${chunk.toString("utf8")}`.slice(-1200);
+    const text = chunk.toString("utf8");
+    stderrTail = `${stderrTail}${text}`.slice(-1200);
+    broadcastCodexOutput("stderr", text);
   });
 
   child.on("error", (err) => {
     sawMappedError = true;
     codexChild = null;
+    broadcastCodexOutput("system", `\x1b[31m\u2717 ${err.message}\x1b[0m\r\n`);
     broadcast(createWrapperError(`Failed to start Codex: ${err.message}`, { codexWrapper: true }));
-    broadcastAgentStatus({ running: false, provider: "codex", exitCode: 1 });
+    broadcastAgentStatus({ running: false, provider: "codex", exitCode: 1, message: err.message });
   });
 
   child.on("close", (code) => {
     codexChild = null;
+    const exitCode = code ?? 0;
     if (code && !sawMappedError) {
       const message = stderrTail.trim() || `Codex exited with code ${code}`;
       broadcast(createWrapperError(message, { codexWrapper: true, exitCode: code }));
     }
-    broadcastAgentStatus({ running: false, provider: "codex", exitCode: code ?? 0 });
+    const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+    broadcastCodexOutput(
+      "system",
+      `\x1b[2m\u2014 Codex finished (exit ${exitCode}, ${elapsedSec}s, ${turnNotes.length} events)\x1b[0m\r\n`,
+    );
+    broadcastAgentStatus({
+      running: false,
+      provider: "codex",
+      exitCode,
+      message: code ? stderrTail.trim().split("\n").slice(-3).join(" \u00b7 ") || `Codex exited with code ${code}` : undefined,
+    });
+    autoCreateMemoryFromRun({
+      prompt,
+      workspace,
+      model,
+      reasoningEffort,
+      speed,
+      exitCode,
+      stderrTail,
+      turnNotes,
+    });
   });
 
   return { ok: true };
+}
+
+function stopRunningCodex() {
+  if (!codexChild) return { ok: false, error: "Codex is not running." };
+  try {
+    codexChild.kill("SIGINT");
+    setTimeout(() => {
+      if (codexChild) {
+        try {
+          codexChild.kill("SIGKILL");
+        } catch {
+          // ignore
+        }
+      }
+    }, 1500);
+    broadcastCodexOutput("system", `\x1b[33m\u26a0 stop requested\x1b[0m\r\n`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+function ansiForKind(kind) {
+  switch (kind) {
+    case "error":
+      return { open: "\x1b[31m" };
+    case "success":
+    case "ship":
+      return { open: "\x1b[32m" };
+    case "command":
+    case "test":
+      return { open: "\x1b[36m" };
+    case "plan":
+    case "think":
+      return { open: "\x1b[35m" };
+    case "edit":
+    case "read":
+      return { open: "\x1b[34m" };
+    case "debug":
+      return { open: "\x1b[33m" };
+    default:
+      return { open: "\x1b[0m" };
+  }
+}
+
+function autoCreateMemoryFromRun(run) {
+  try {
+    const note = memoryStore.createMemoryFromCodexRun(run);
+    if (note) broadcastMemoryEvent("created", { id: note.id });
+  } catch (err) {
+    console.warn("[jarvis] failed to record Codex memory:", err.message);
+  }
 }
 
 function runAgentFromApp(request) {
@@ -599,6 +718,62 @@ ipcMain.handle("jarvis:select-workspace", async () => {
 
 ipcMain.handle("jarvis:agent-run", (_evt, request) => runAgentFromApp(request));
 ipcMain.handle("jarvis:codex-run", (_evt, request) => runCodexFromApp(request));
+ipcMain.handle("jarvis:codex-stop", () => stopRunningCodex());
+
+ipcMain.handle("jarvis:memory-list", () => {
+  try {
+    return { ok: true, notes: memoryStore.listMemories() };
+  } catch (err) {
+    return { ok: false, error: err.message, notes: [] };
+  }
+});
+ipcMain.handle("jarvis:memory-get", (_evt, id) => {
+  try {
+    const note = memoryStore.loadMemory(id);
+    return note ? { ok: true, note } : { ok: false, error: "Not found" };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle("jarvis:memory-save", (_evt, note) => {
+  try {
+    const saved = memoryStore.saveMemory(note);
+    broadcastMemoryEvent(note?.id ? "updated" : "created", { id: saved.id });
+    return { ok: true, note: saved };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle("jarvis:memory-delete", (_evt, id) => {
+  try {
+    const ok = memoryStore.deleteMemory(id);
+    if (ok) broadcastMemoryEvent("deleted", { id });
+    return { ok };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle("jarvis:memory-search", (_evt, query) => {
+  try {
+    return { ok: true, notes: memoryStore.searchMemories(typeof query === "string" ? query : "") };
+  } catch (err) {
+    return { ok: false, error: err.message, notes: [] };
+  }
+});
+ipcMain.handle("jarvis:memory-backlinks", (_evt, id) => {
+  try {
+    return { ok: true, ids: memoryStore.findBacklinks(id) };
+  } catch (err) {
+    return { ok: false, error: err.message, ids: [] };
+  }
+});
+ipcMain.handle("jarvis:memory-suggest", (_evt, id) => {
+  try {
+    return { ok: true, suggestions: memoryStore.suggestConnections(id) };
+  } catch (err) {
+    return { ok: false, error: err.message, suggestions: [] };
+  }
+});
 
 app.whenReady().then(async () => {
   nativeTheme.themeSource = "dark";
