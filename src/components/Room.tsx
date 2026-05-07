@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import type { RoomLayout } from "@/data/rooms";
 import type { AgentState } from "@/types/activity";
+import { useCodexTail } from "@/hooks/useCodexTail";
 
 interface RoomProps {
   room: RoomLayout;
@@ -91,14 +92,7 @@ function RoomScene({
         </div>
       );
     case "terminal":
-      return (
-        <div className="room-scene scene-terminal">
-          <div className={`crt ${active && agentState === "running" ? "crt-on" : ""}`}>
-            <div className="prompt">$ _</div>
-          </div>
-          <div className="desk" />
-        </div>
-      );
+      return <TerminalRoomScene active={active} agentState={agentState} />;
     case "lab":
       return (
         <div className="room-scene scene-lab">
@@ -142,4 +136,30 @@ function RoomScene({
         </div>
       );
   }
+}
+
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*m/g;
+
+function TerminalRoomScene({ active, agentState }: { active: boolean; agentState: AgentState }) {
+  const lines = useCodexTail(4);
+  const showOutput = lines.length > 0;
+  return (
+    <div className="room-scene scene-terminal">
+      <div className={`crt ${active && agentState === "running" ? "crt-on" : ""}`}>
+        {showOutput ? (
+          <div className="crt-feed">
+            {lines.map((line, i) => (
+              <div key={`${i}-${line.timestamp}`} className={`crt-line crt-${line.stream}`}>
+                {line.text.replace(ANSI_RE, "").trim() || "\u00a0"}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="prompt">$ _</div>
+        )}
+      </div>
+      <div className="desk" />
+    </div>
+  );
 }

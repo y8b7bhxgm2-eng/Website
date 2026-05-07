@@ -15,6 +15,16 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     sourcemap: true,
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Keep the terminal renderer in its own chunk so the initial
+          // bundle stays small. xterm is ~150KB gzipped on its own.
+          xterm: ["xterm", "xterm-addon-fit"],
+        },
+      },
+    },
   },
   test: {
     globals: true,

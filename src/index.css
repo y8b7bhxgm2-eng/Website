@@ -1301,3 +1301,689 @@ body.theme-matrix {
   --bad: #ff3333;
   --warn: #ffff00;
 }
+
+/* ---------------------------------------------------------------- */
+/*  Codex live terminal panel                                       */
+/* ---------------------------------------------------------------- */
+
+.terminal-panel {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0.96), rgba(0, 0, 0, 0.92));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  margin-top: 14px;
+  min-height: 260px;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.85), rgba(0, 0, 0, 0.6));
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.terminal-dot.dot-red { background: rgba(255, 102, 102, 0.85); }
+.terminal-dot.dot-amber { background: rgba(255, 200, 130, 0.85); }
+.terminal-dot.dot-green { background: rgba(170, 230, 170, 0.85); }
+
+.terminal-label {
+  margin-left: 6px;
+  color: var(--text-1);
+}
+
+.terminal-meta {
+  margin-left: 10px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.terminal-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.terminal-surface {
+  flex: 1 1 auto;
+  min-height: 200px;
+  padding: 10px 12px 4px;
+  background: transparent;
+}
+
+.terminal-surface .xterm,
+.terminal-surface .xterm-viewport,
+.terminal-surface .xterm-screen {
+  background: transparent !important;
+}
+
+.terminal-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-mini {
+  padding: 4px 10px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+/* ---------------------------------------------------------------- */
+/*  CRT mini live-tail                                              */
+/* ---------------------------------------------------------------- */
+
+.crt-feed {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.crt-line {
+  color: rgba(220, 220, 220, 0.78);
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.crt-line.crt-stderr {
+  color: rgba(220, 160, 160, 0.85);
+}
+
+.crt-line.crt-system {
+  color: rgba(180, 180, 180, 0.6);
+}
+
+/* ---------------------------------------------------------------- */
+/*  Phase pills (Task -> Workspace -> Agents -> Review)             */
+/* ---------------------------------------------------------------- */
+
+.phase-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 12px;
+}
+
+.phase-pill-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phase-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  transition: all 0.3s ease;
+}
+
+.phase-pill .phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.phase-pill-past {
+  color: var(--text-1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.phase-pill-past .phase-dot {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.phase-pill-active {
+  color: var(--text-0);
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.18);
+}
+
+.phase-pill-active .phase-dot {
+  background: var(--text-0);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+.phase-arrow {
+  color: rgba(255, 255, 255, 0.18);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------- */
+/*  Memory hub                                                      */
+/* ---------------------------------------------------------------- */
+
+.memory-hub {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(700px 400px at 50% 50%, rgba(255, 255, 255, 0.06), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.96), rgba(0, 0, 0, 0.99));
+  backdrop-filter: blur(8px);
+}
+
+.memory-hub-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-1);
+}
+
+.memory-hub-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.memory-hub-mono {
+  font-size: 13px;
+  color: var(--text-0);
+}
+
+.memory-hub-tag {
+  color: var(--text-2);
+}
+
+.memory-hub-counts {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-2);
+}
+
+.memory-hub-counts > span::before {
+  content: "● ";
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.memory-hub-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 240px 1fr 320px;
+  gap: 1px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.memory-hub-sidebar {
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.memory-hub-search {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.memory-hub-search input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--text-0);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.memory-hub-search input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.memory-hub-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.memory-hub-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.memory-hub-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.memory-hub-item-active {
+  background: rgba(255, 255, 255, 0.07);
+  border-left: 2px solid var(--text-0);
+}
+
+.memory-hub-item-title {
+  font-size: 12px;
+  color: var(--text-0);
+  margin-bottom: 4px;
+}
+
+.memory-hub-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-2);
+}
+
+.memory-hub-item-id {
+  text-transform: lowercase;
+}
+
+.memory-hub-tag-pill {
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: var(--text-1);
+}
+
+.memory-hub-empty {
+  padding: 20px 14px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.memory-hub-graph {
+  background: radial-gradient(600px 360px at 50% 50%, rgba(255, 255, 255, 0.04), transparent 70%);
+  position: relative;
+  overflow: hidden;
+}
+
+.memory-graph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.memory-graph-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.memory-graph-edge {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 0.75;
+  fill: none;
+}
+
+.memory-graph-edge-active {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.2;
+}
+
+.memory-graph-node {
+  cursor: pointer;
+}
+
+.memory-graph-node-core {
+  fill: rgba(20, 20, 20, 0.95);
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.2;
+}
+
+.memory-graph-node-inner {
+  fill: rgba(255, 255, 255, 0.6);
+  stroke: none;
+}
+
+.memory-graph-node-active .memory-graph-node-core {
+  fill: rgba(40, 40, 40, 1);
+  stroke: var(--text-0);
+  stroke-width: 1.6;
+}
+
+.memory-graph-node-active .memory-graph-node-inner {
+  fill: var(--text-0);
+}
+
+.memory-graph-node-label {
+  fill: rgba(255, 255, 255, 0.55);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.memory-graph-node-active .memory-graph-node-label {
+  fill: var(--text-0);
+  font-size: 9px;
+}
+
+.memory-hub-detail {
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.memory-hub-detail-empty {
+  padding: 24px;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.memory-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.memory-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.memory-detail-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-destructive {
+  border-color: rgba(220, 120, 120, 0.35);
+  color: rgba(240, 180, 180, 0.95);
+}
+
+.memory-detail-title {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-0);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.memory-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.memory-detail-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.memory-detail-row input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--text-0);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.memory-detail-body {
+  flex: 1 1 auto;
+  min-height: 180px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--text-0);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.memory-detail-related {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.memory-detail-related header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-2);
+  padding-top: 6px;
+}
+
+.memory-detail-related ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memory-detail-related li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-1);
+}
+
+.memory-detail-related li em {
+  color: var(--text-2);
+  font-style: normal;
+}
+
+.memory-detail-empty {
+  margin: 0;
+  font-size: 10px;
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.memory-hub-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.memory-hub-action {
+  background: transparent;
+  color: var(--text-1);
+  border: none;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.memory-hub-action[disabled] {
+  color: rgba(255, 255, 255, 0.18);
+  cursor: not-allowed;
+}
+
+.memory-hub-action:hover:not([disabled]) {
+  color: var(--text-0);
+}
+
+.memory-hub-action em {
+  color: rgba(255, 255, 255, 0.25);
+  font-style: normal;
+}
+
+.memory-hub-action-active:not([disabled]) {
+  color: var(--text-0);
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.3);
+}
+
+.memory-hub-unsupported {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+}
+
+.memory-hub-unsupported p { margin: 0; }
+.memory-hub-hint { font-size: 11px; }
+
+/* Memory toggle inside Codex panel. */
+.memory-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+  margin: 6px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.memory-toggle input {
+  appearance: none;
+  width: 28px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.memory-toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  transition: all 0.18s ease;
+}
+
+.memory-toggle input:checked {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.memory-toggle input:checked::after {
+  left: 16px;
+  background: #000;
+}
+
+.codex-run-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-stop {
+  border-color: rgba(220, 120, 120, 0.4);
+  color: rgba(240, 180, 180, 0.95);
+}

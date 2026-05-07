@@ -32,19 +32,19 @@ export function Avatar({ fsm }: AvatarProps) {
       <div className="avatar-body">
         <motion.div
           className="avatar-orbit orbit-wide"
-          animate={{ rotate: 360 }}
+          animate={fsm.state === "idle" ? { rotate: 0 } : { rotate: 360 }}
           transition={{
             duration: isBusy(fsm.state) ? 1.6 : 5,
-            repeat: Infinity,
+            repeat: fsm.state === "idle" ? 0 : Infinity,
             ease: "linear",
           }}
         />
         <motion.div
           className="avatar-orbit orbit-tight"
-          animate={{ rotate: -360 }}
+          animate={fsm.state === "idle" ? { rotate: 0 } : { rotate: -360 }}
           transition={{
             duration: fsm.state === "thinking" ? 2.1 : 4.2,
-            repeat: Infinity,
+            repeat: fsm.state === "idle" ? 0 : Infinity,
             ease: "linear",
           }}
         />
@@ -52,12 +52,12 @@ export function Avatar({ fsm }: AvatarProps) {
           className="avatar-core"
           animate={
             fsm.state === "idle"
-              ? { scale: [1, 1.03, 1] }
+              ? { scale: 1 }
               : { scale: [1, 1.1, 1], y: [0, -2, 0] }
           }
           transition={{
-            duration: fsm.state === "idle" ? 3 : 1.4,
-            repeat: Infinity,
+            duration: 1.4,
+            repeat: fsm.state === "idle" ? 0 : Infinity,
             ease: "easeInOut",
           }}
         />
